@@ -100,7 +100,7 @@ class Parent(db.Model):
 class Child(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
-    parent_id = db.Column(db.Integer, db.ForeignKey("Parent.id"))
+    parent_id = db.Column(db.Integer, db.ForeignKeyConstraint("Parent.id"))
     
     def __repr__(self):
         return '<Child {self.name}>

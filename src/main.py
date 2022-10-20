@@ -67,11 +67,11 @@ def create_user():
 
 #Excluir usuario ya ingresado discirminado por email
     if query_user is None:
-        new_user = User(email=body["email"], password=body["password"], name=body["name"], is_active=bool(body["is_active"]))
+        new_user = User(email=body["email"], password=body["password"], name=body["name"], is_active=bool(body["is_active"]), id=len(User.query.all())+1)
         db.session.add(new_user)
         print()
         db.session.commit()
-        new_table_favorite = Favorite(lista_favorite="")
+        new_table_favorite = Favorite(lista_favorite="", id=len(Favorite.query.all())+1)
         db.session.add(new_table_favorite)
         db.session.commit()
 
@@ -115,17 +115,26 @@ def get_favorites(user_id):
     #obtener su lista segun id
 
     body = json.loads(request.data)
-    favorite_user = Favorite.query.filter_by(id = user_id).first()
-
-    if favorite_user is None and body is None:       
+    favorites_user = Favorite.query.filter_by(id = user_id).first()
+    print(Favorite.query.filter_by(id = user_id).first())
+    # #borrar si no esta en la lista
+    if body["favorite"] in dict(favorites_user.serialize())["lista_favorite"]:
+    #     #conseguimos el star de la base de datos 
+        aux = dict(favorites_user.serialize())["lista_favorite"]
+    #     #eliminamos el valor usando de referencia de separacion para crear un array
+        aux = aux.split("$$"+body["favorite"])
+    #     #convertir el array si el valor de vuelta en str, para mandarlo a la base de datos
+        aux = ''.join(aux)
+        favorites_user.lista_favorite = aux
+        db.session.commit()
+        return jsonify({"msg":"the favorite has been delated successfully"}), 200
+    # #mandar un error si no existe la lista o contenido en el body 
+    elif favorites_user is None and body is None:
         return jsonify({"msg": "There is no list for this user"}) , 404
-    favorite_user.lista_favorite = dict(favorite_user.serialize())["lista_favorite"]+","+body["favorite"]
+    # #agregar si existe la lista pero no esta el contenido
+    favorites_user. lista_favorite = dict(favorites_user.serialize())["lista_favorite"]+"$$"+body["favorite"]
     db.session.commit()
     return jsonify({"msg": "the favorite has beend added exit"}), 200
-
-
-
-
 
 
 

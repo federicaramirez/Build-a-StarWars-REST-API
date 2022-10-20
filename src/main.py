@@ -9,6 +9,11 @@ from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
 from models import db, User, Planets, Favorite
+#import jwt
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import jwt_required
+from flask_jwt_extended import JWTManager
 
 #from models import Person
 
@@ -20,6 +25,10 @@ MIGRATE = Migrate(app, db)
 db.init_app(app)
 CORS(app)
 setup_admin(app)
+
+# Setup the Flask-JWT-Extended extension
+app.config["JWT_SECRET_KEY"] = "super-secret"  # Change this!
+jwt = JWTManager(app)
 
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
@@ -135,6 +144,65 @@ def get_favorites(user_id):
     favorites_user. lista_favorite = dict(favorites_user.serialize())["lista_favorite"]+"$$"+body["favorite"]
     db.session.commit()
     return jsonify({"msg": "the favorite has beend added exit"}), 200
+
+
+# Cree una ruta para autenticar a sus usuarios y devolver JWT. los
+# La función create_access_token() se usa para generar realmente el JWT.
+@app.route("/login", methods=["POST"])
+def login():
+
+    email = request.json.get("email", None) #Formas de recibir el front
+    password = request.json.get("password", None) #Formas de recibir el front
+
+    login_user = User.query.filter_by(email=email).first()
+    if login_user is None:
+        return jsonify({"msg": "User don't exist"}), 404
+    elif email != login_user.email or password != login_user.password:
+        return jsonify({"msg": "Bad email or password"}), 401
+
+#crea el acceso y devuelve un token a las personas al loguearse
+    access_token = create_access_token(identity=email)
+    #Enviar el token segun usuario
+    response_body = {
+        "access_token": access_token,
+        "user": login_user.serialize()  
+    } #OBJETO
+    return jsonify(response_body) 
+    
+# Proteja una ruta con jwt_required, que eliminará las solicitudes
+# sin un JWT válido presente.  
+@app.route("/profile", methods=["GET"])
+@jwt_required() #Portero de nuestra ruta protegida
+def protected():
+
+    # Accede a la identidad del usuario actual con get_jwt_identity
+    current_user = get_jwt_identity()
+    # print(current_user)
+    login_user = User.query.filter_by(email=current_user).first()
+
+    if login_user is None:
+        return jsonify({"msg": "User don't exist"}), 404
+    response_body = {
+        "user": login_user.serialize()
+    }
+    return jsonify(response_body), 200
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

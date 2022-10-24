@@ -187,6 +187,18 @@ def protected():
     }
     return jsonify(response_body), 200
     
+@app.route("/valid_token", methods=["GET"])
+@jwt_required()
+def valid_token():
+    current_user = get_jwt_identity()
+    login_user = User.query.filter_by(email=current_user).first()
+    if login_user is None:
+        return jsonify({"status": False}), 404
+    response_body={
+        "status": True,
+        "user":login_user.serialize()
+    }
+    return jsonify(response_body), 200
 
 
 
